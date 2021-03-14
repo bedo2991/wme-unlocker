@@ -4,9 +4,9 @@
 // @description         Makes it easyer for the unlocker to handle the request
 // @grant               none
 // @run-at              document-start
-// @updateURL	https://code.waze.tools/repository/7e74c74e-84d3-4b80-8f4c-fcb7f886b41d.user.js
-// @include    /^https:\/\/(www|beta)\.waze\.com(\/\w{2,3}|\/\w{2,3}-\w{2,3}|\/\w{2,3}-\w{2,3}-\w{2,3})?\/editor\b/
-// @version             1.2.2
+// @updateURL	        https://github.com/bedo2991/wme-unlocker/raw/main/unlocker.user.js
+// @include             /^https:\/\/(www|beta)\.waze\.com(\/\w{2,3}|\/\w{2,3}-\w{2,3}|\/\w{2,3}-\w{2,3}-\w{2,3})?\/editor\b/
+// @version             1.2.3
 // ==/UserScript==
 
     function ITUnlockerscript_global()
@@ -20,6 +20,7 @@
             console.error("API Error, cannot find UpdateObject action");
         }
     }
+
     function ITUnlockerscript_bootstrap() {
         var bGreasemonkeyServiceDefined = false;
         try
@@ -197,6 +198,7 @@
         $(".WazeControlPermalink").prepend(btn1);
         consoleLog('ITUnlockerock initialised');
     }
+
     function getUrlVars() {
         var vars = {};
         var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
@@ -204,6 +206,7 @@
         });
         return vars;
     }
+
     function ITUnlockerPermalink(event) {
         $('div#UNLmessage').css('display','none');
         $('div.toolbar-button.waze-icon-save')[0].removeEventListener('click',ITUnlockerPermalink);
@@ -241,6 +244,7 @@
         original_permalink = removeParam('U', original_permalink);
         consoleLog(original_permalink);
     }
+
     function generate_permalink() {
     	return $('a.permalink')[0].href;
     }

@@ -6,14 +6,28 @@
 // @run-at              document-start
 // @updateURL	        https://github.com/bedo2991/wme-unlocker/raw/main/unlocker.user.js
 // @include             /^https:\/\/(www|beta)\.waze\.com(\/\w{2,3}|\/\w{2,3}-\w{2,3}|\/\w{2,3}-\w{2,3}-\w{2,3})?\/editor\b/
-// @version             1.2.3
+// @version             1.3.0
 // ==/UserScript==
+
+/* global $, W, require, Components*/
+
+
+(function ITUnlocker() {
+    const ITUnlockerVersion = GM_info.script.version;
+    let UpdateObject = null;
+    let ITUnlockerloginManager = null;
+    let wazeModel = null;
+    let message = null;
+    let user_rank = null;
+    let modify = null;
+    let original_permalink = null;
+    let reporter = null;
+    const vars = getUrlVars();
 
     function ITUnlockerscript_global()
     {
-        ITUnlockerVersion = GM_info.script.version;
         try{
-    	UpdateObject = require("Waze/Action/UpdateObject");
+            UpdateObject = require("Waze/Action/UpdateObject");
         }
         catch(e)
         {
@@ -72,23 +86,28 @@
     function updateLock()
     {
         consoleLog("Update Lock");
-        var max_lock = ITUnlockerGetRankLevel();
-        if(W.loginManager.user.normalizedLevel < max_lock)
+        const si = W.selectionManager.getSelectedFeatures();
+        if(si.length===0){
+            message = 'Nessun segmento selezionato. O la richiesta è stata già fatta, o quello che doveva essere selezionato non si trova qui.';
             return;
+        }
 
-        if(max_lock == user_rank)
+        const max_lock = ITUnlockerGetRankLevel();
+        if(W.loginManager.user.normalizedLevel < max_lock) {
+            return;
+        }
+
+        if(max_lock === user_rank)
         {
-        	message='I segmenti sono già sbloccati al livello richiesto.\nForse qualcun altro ha già effettuato questa richiesta?';
+        	message = 'I segmenti sono già sbloccati al livello richiesto.\nForse qualcun altro ha già effettuato questa richiesta?';
+            return;
         }
         else
         {
-            var lock_to = parseInt(user_rank) - 1;
-            var si = W.selectionManager.getSelectedFeatures();
-            var UpdateObject = require("Waze/Action/UpdateObject");
+            const lock_to = parseInt(user_rank) - 1;
             console.log("Lock to: "+ lock_to);
-            console.dir(UpdateObject);
-            for(i =0; i < si.length && max_lock < 5; i++){
-                s = si[i].model;
+            for(let i =0; i < si.length && max_lock < 5; i++){
+                const s = si[i].model;
                 W.model.actionManager.add(new UpdateObject(s, {lockRank:lock_to}));
             }
             $('div.toolbar-button.waze-icon-save')[0].addEventListener('click', ITUnlockerPermalink);
@@ -96,13 +115,15 @@
     }
 
     function ITUnlockerGetRankLevel(){
-    var sel = W.selectionManager.getSelectedFeatures();
-        if(sel.length>0){
+    const sel = W.selectionManager.getSelectedFeatures();
+        if(sel.length > 0){
             var max = sel[0].model.getLockRank();
-            for (i = 1; i < sel.length; i++) {
-                if (max == 5)
+            for (let i = 1; i < sel.length; i++) {
+                if (max === 5) {
                     return 6; //5+1
-                if (sel[i].model.getLockRank() > max) {
+                }
+                const rank = sel[i].model.getLockRank();
+                if (rank > max) {
                     max = rank;
                 }
             }
@@ -115,10 +136,12 @@
     var sel = W.selectionManager.getSelectedFeatures();
         if(sel.length>0){
             var max = sel[0].model.attributes.rank;
-            for (i = 1; i < sel.length; i++) {
-                if (max == 5)
+            for (let i = 1; i < sel.length; i++) {
+                if (max === 5) {
                     return 6; //5+1
-                if (sel[i].model.attributes.rank > max) {
+                }
+                const rank = sel[i].model.attributes.rank;
+                if (rank > max) {
                     max = rank;
                 }
             }
@@ -129,54 +152,69 @@
 
     function ITUnlockerinsertButton() {
         consoleLog("Inserting button");
-        if(document.getElementById('ITUnlocker') != undefined)
+        if(document.getElementById('ITUnlocker') != undefined) {
             return;
+        }
 
-        var btn1 = $('<a id="ITUnlocker" href="javascript:;" style="margin-right:20px;float:left" title="Invia il PM precompilato al richiedente\nClick+CTRL: Non fatto\nClick+Shift: Ulteriori info\n WME Unlocker v. '+ITUnlockerVersion+'">Invia PM</a>');
+        const btn1 = $('<a id="ITUnlocker" href="javascript:;" style="margin-right:20px;float:left" title="Invia il PM precompilato al richiedente\nClick+CTRL: Non fatto\nClick+Shift: Ulteriori info\n WME Unlocker v. '+ITUnlockerVersion+'">Invia PM</a>');
+
+        //Initialise global variables
         reporter = vars.R;
-        modify =  vars.M == 't' ? true:false;
+        modify = vars.M == 't' ? true:false;
         user_rank = vars.U;
+
         if(user_rank != undefined)
         {
-            if(!modify){
+            if(!modify) {
                 consoleLog("Trying to update lock");
             	updateLock();
                 consoleLog("Lock updated");
             }
-            else
+            else {
                 consoleLog("Lock level won't be modified (WAD)");
+            }
         }
-        else
+        else {
             consoleLog("Error: User Rank is null");
+        }
+
         //Show the Message div
-        var message_div=$('<div id="UNLmessage" class="ui-widget-content" style="overflow-y:auto; overflow-x:hidden; background-color:white; padding:10px; position:absolute; top:0; right:45%; display:inline-block; width:340pt; opacity:0.9; z-index:9999"></div>');
-        if(typeof message == 'undefined'){ //no error message has been set
-        message = decodeURIComponent(vars.Me);
-        if(message != undefined)
-        {
-            var title = $('<h4 style="color:red; display:inline">Messaggio: </h4>');
-            var message_p = $('<p style="display:inline">'+message.replace(/\n/g,"<br/>")+'</p>');
-            var br = $('<br/>');
-            var lock_level = $('<h4 style="color:red;display:inline">Richiesto da: </h4>');
-            var user_r = $('<p style="display:inline">'+reporter + (user_rank != undefined?('('+user_rank+')</p>'):'</p>'));
-            message_div.append(title).append(message_p).append(br).append(lock_level).append(user_r);
-            if((rr=ITUnlockerGetMaxRANKLevel()) > user_rank)
+        const message_div = $(`
+       <div id="UNLmessage" class="ui-widget-content"
+       style="overflow-y:auto; overflow-x:hidden; background-color:white; padding:5pt; position:absolute; top:10%; right:45%; display:inline-block; width:340pt; opacity:0.9; z-index:9999">
+       </div>`);
+        const close_button = $('<button id="it-unlocker-close" style="float:right; border-radius: 50%; width:15pt; height: 15pt; font-weight:bold; line-height: 7.5pt; padding:0;">x</button>');
+        close_button.on("click", cleanUp);
+        message_div.append(close_button);
+        if(!message){ //no error message has been set until now
+            //Get the message from the URL parameters
+            message = decodeURIComponent(vars.Me);
+            if(message)
             {
-                var road_rank = $('<br/><p style="color:blue;display:inline">Attenzione! Il road rank di uno degli elementi ('+rr+') è maggiore del livello dell\'utente. Effettua la modifica modifica richiesta e blocca il segmento.</p>');
-                message_div.append(road_rank);
+                const title = $('<h5 style="color:red; display:inline">Messaggio: </h5>');
+                const message_p = $('<p style="display:inline">'+message.replace(/\n/g,"<br/>")+'</p>');
+                const br = $('<br/>');
+                const lock_level = $('<h5 style="color:red;display:inline">Richiesto da: </h5>');
+                const user_r = $('<p style="display:inline">'+reporter + (user_rank != undefined?('('+user_rank+')</p>'):'</p>'));
+                message_div.append(title).append(message_p).append(br).append(lock_level).append(user_r);
+                const rr = ITUnlockerGetMaxRANKLevel();
+                if(rr > user_rank)
+                {
+                    const road_rank = $('<br/><p style="color:blue;display:inline">Attenzione! Il road rank di uno degli elementi ('+rr+') è maggiore del livello dell\'utente. Effettua la modifica modifica richiesta e blocca il segmento.</p>');
+                    message_div.append(road_rank);
+                }
+                if(modify){
+                    const edit_message = $('<h5 style="color:red;">Intervento richiesto, effettua la modifica e invia il PM usando il link.</h5>');
+                    message_div.append(edit_message);
+                }
             }
-            if(modify){
-                var edit_message = $('<h4 style="color:red;">Intervento richiesto, effettua la modifica e invia il PM usando il link.</h4>');
-                message_div.append(edit_message);
+            else{
+                consoleLog('Message skipped');
             }
-        }
-        else{
-            consoleLog('Message skipped');
-        }
         }
         else
         {
-            var warning = $('<h4 style="color:red; margin: auto">Avviso: '+message+'</h4>');
+            var warning = $(`<h5 style="color:red; margin: auto">Avviso: ${message}</h5>`);
             message_div.append(warning);
         }
         //Insert the message in the page
@@ -207,22 +245,32 @@
         return vars;
     }
 
-    function ITUnlockerPermalink(event) {
-        $('div#UNLmessage').css('display','none');
+    function cleanUp(){
+        //Remove the panel
+        $('#UNLmessage').remove();
+        //Remove the "Invia PM" button
+        $('#ITUnlocker').remove();
+        //Remove the event listener from the save button
         $('div.toolbar-button.waze-icon-save')[0].removeEventListener('click',ITUnlockerPermalink);
+        //Update the page URL
+        history.pushState({}, null, original_permalink);
+    }
+
+    function ITUnlockerPermalink(event) {
+        cleanUp();
         if(event == undefined)
         {//Coming from save button
         	window.open(generateSuccessfulPMURL(reporter, original_permalink, message, modify));
         }
-        if(event.ctrlKey)        //UNSUCESSFUL
-        {
+        if(event.ctrlKey)
+        { //UNSUCESSFUL
             window.open(generateUNSuccessfulPMURl(reporter,original_permalink, message), '_blank');
         }
         else if(event.shiftKey)
-        {                        //More information
+        { //More information
             window.open(generateInfoPMURL(reporter,original_permalink, message), '_blank');
         }
-            else  //Successful:
+        else //Successful:
         {
             window.open(generateSuccessfulPMURL(reporter, original_permalink, message, modify));
         }
@@ -244,7 +292,6 @@
         original_permalink = removeParam('U', original_permalink);
         consoleLog(original_permalink);
     }
-
     function generate_permalink() {
     	return $('a.permalink')[0].href;
     }
@@ -286,21 +333,22 @@
     }
 
     function coolscript_init() {
-        ITUnlockerscript_global();
-        vars = getUrlVars();
-        console.error(vars);
+        console.debug(vars);
         if (vars.R == undefined)
         {
             consoleLog('No username, initialization aborted (WAD)');
             return;
         }
         consoleLog('init');
+        ITUnlockerscript_global();
         ITUnlocker_WazeBits();
         //Inserisco il pulsante
         ITUnlockerinsertButton();
         save_original_permalink();
     }
 
-window.onload = function() {
-   ITUnlockerscript_bootstrap();
-};
+    window.onload = function() {
+        ITUnlockerscript_bootstrap();
+    };
+
+    })();

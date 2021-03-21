@@ -6,10 +6,11 @@
 // @run-at              document-start
 // @updateURL	        https://github.com/bedo2991/wme-unlocker/raw/main/unlocker.user.js
 // @include             /^https:\/\/(www|beta)\.waze\.com(\/\w{2,3}|\/\w{2,3}-\w{2,3}|\/\w{2,3}-\w{2,3}-\w{2,3})?\/editor\b/
-// @version             1.3.0
+// @require      https://greasyfork.org/scripts/24851-wazewrap/code/WazeWrap.js
+// @version             1.4.0
 // ==/UserScript==
 
-/* global $, W, require, Components*/
+/* global $, W, require, Components, WazeWrap*/
 
 
 (function ITUnlocker() {
@@ -21,8 +22,18 @@
     let user_rank = null;
     let modify = null;
     let original_permalink = null;
+    let pmRequested = false;
     let reporter = null;
     const vars = getUrlVars();
+
+    const safeAlert = (level, message) => {
+        try {
+            WazeWrap.Alerts[level](GM_info.script.name, message);
+        } catch (e) {
+            console.error(e);
+            alert(message);
+        }
+    };
 
     function ITUnlockerscript_global()
     {
@@ -228,9 +239,11 @@
             $( "#UNLmessage" ).show();
         }
         consoleLog('Message inserted');
-        if (vars.PM == "f")
+        if (vars.PM === "f")
         {
             btn1.text("PM non richiesto");
+        }else{
+            pmRequested = true; //false by default
         }
         btn1.click(ITUnlockerPermalink);
         $(".WazeControlPermalink").prepend(btn1);
@@ -258,10 +271,6 @@
 
     function ITUnlockerPermalink(event) {
         cleanUp();
-        if(event == undefined)
-        {//Coming from save button
-        	window.open(generateSuccessfulPMURL(reporter, original_permalink, message, modify));
-        }
         if(event.ctrlKey)
         { //UNSUCESSFUL
             window.open(generateUNSuccessfulPMURl(reporter,original_permalink, message), '_blank');
@@ -272,7 +281,11 @@
         }
         else //Successful:
         {
-            window.open(generateSuccessfulPMURL(reporter, original_permalink, message, modify));
+            if(pmRequested){
+                window.open(generateSuccessfulPMURL(reporter, original_permalink, message, modify));
+            }else{
+                safeAlert("success", `That's all, ${reporter} does not want to receive a PM`);
+            }
         }
         return false;
     }

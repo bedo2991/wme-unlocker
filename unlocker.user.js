@@ -5,9 +5,10 @@
 // @grant               none
 // @run-at              document-start
 // @updateURL	        https://github.com/bedo2991/wme-unlocker/raw/main/unlocker.user.js
+// @supportURL          https://github.com/bedo2991/wme-unlocker/issues
 // @include             /^https:\/\/(www|beta)\.waze\.com(\/\w{2,3}|\/\w{2,3}-\w{2,3}|\/\w{2,3}-\w{2,3}-\w{2,3})?\/editor\b/
-// @require      https://greasyfork.org/scripts/24851-wazewrap/code/WazeWrap.js
-// @version             1.4.0
+// @require             https://greasyfork.org/scripts/24851-wazewrap/code/WazeWrap.js
+// @version             1.5.0
 // ==/UserScript==
 
 /* global $, W, require, Components, WazeWrap*/
@@ -47,7 +48,7 @@
     }
 
     function ITUnlockerscript_bootstrap() {
-        var bGreasemonkeyServiceDefined = false;
+        let bGreasemonkeyServiceDefined = false;
         try
         {
             if (typeof Components.interfaces.gmIGreasemonkeyService === "object")
@@ -61,7 +62,7 @@
         if (typeof unsafeWindow === "undefined" || !bGreasemonkeyServiceDefined)
         {
             unsafeWindow = (function() {
-                var dummyElem = document.createElement('p');
+                const dummyElem = document.createElement('p');
                 dummyElem.setAttribute('onclick', 'return window;');
                 return dummyElem.onclick();
             })();
@@ -77,13 +78,13 @@
     }
 
     function removeParam(key, sourceURL) {
-        var rtn = sourceURL.split("?")[0],
+        let rtn = sourceURL.split("?")[0],
             param,
             params_arr = [],
             queryString = (sourceURL.indexOf("?") !== -1) ? sourceURL.split("?")[1] : "";
         if (queryString !== "") {
             params_arr = queryString.split("&");
-            for (var i = params_arr.length - 1; i >= 0; i -= 1) {
+            for (let i = params_arr.length - 1; i >= 0; i -= 1) {
                 param = params_arr[i].split("=")[0];
                 if (param === key) {
                     params_arr.splice(i, 1);
@@ -110,7 +111,7 @@
 
         if(max_lock === user_rank)
         {
-        	message = 'I segmenti sono già sbloccati al livello richiesto.\nForse qualcun altro ha già effettuato questa richiesta?';
+            message = 'I segmenti sono già sbloccati al livello richiesto.\nForse qualcun altro ha già effettuato questa richiesta?';
             return;
         }
         else
@@ -126,9 +127,9 @@
     }
 
     function ITUnlockerGetRankLevel(){
-    const sel = W.selectionManager.getSelectedFeatures();
+        const sel = W.selectionManager.getSelectedFeatures();
         if(sel.length > 0){
-            var max = sel[0].model.getLockRank();
+            let max = sel[0].model.getLockRank();
             for (let i = 1; i < sel.length; i++) {
                 if (max === 5) {
                     return 6; //5+1
@@ -144,9 +145,9 @@
     }
 
     function ITUnlockerGetMaxRANKLevel(){
-    var sel = W.selectionManager.getSelectedFeatures();
+        const sel = W.selectionManager.getSelectedFeatures();
         if(sel.length>0){
-            var max = sel[0].model.attributes.rank;
+            let max = sel[0].model.attributes.rank;
             for (let i = 1; i < sel.length; i++) {
                 if (max === 5) {
                     return 6; //5+1
@@ -178,7 +179,7 @@
         {
             if(!modify) {
                 consoleLog("Trying to update lock");
-            	updateLock();
+                updateLock();
                 consoleLog("Lock updated");
             }
             else {
@@ -215,7 +216,7 @@
                     message_div.append(road_rank);
                 }
                 if(modify){
-                    const edit_message = $('<h5 style="color:red;">Intervento richiesto, effettua la modifica e invia il PM usando il link.</h5>');
+                    const edit_message = $(`<h5 style="color:red;">Intervento richiesto, effettua tu la modifica${pmRequested? 'e invia il PM usando il link':' - PM non richiesto'}.</h5>`);
                     message_div.append(edit_message);
                 }
             }
@@ -225,7 +226,7 @@
         }
         else
         {
-            var warning = $(`<h5 style="color:red; margin: auto">Avviso: ${message}</h5>`);
+            const warning = $(`<h5 style="color:red; margin: auto">Avviso: ${message}</h5>`);
             message_div.append(warning);
         }
         //Insert the message in the page
@@ -251,8 +252,8 @@
     }
 
     function getUrlVars() {
-        var vars = {};
-        var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+        const vars = {};
+        window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m, key, value) {
             vars[key] = value;
         });
         return vars;
@@ -306,47 +307,63 @@
         consoleLog(original_permalink);
     }
     function generate_permalink() {
-    	return $('a.permalink')[0].href;
+        return $('a.permalink')[0].href;
     }
 
     function generateSuccessfulPMURL(username, permalink, messaggio, modificare)
     {
         return "http://www.waze.com/forum/ucp.php?i=pm&mode=compose&username="+
-        username+
-        "&subject=Richiesta%20esaudita&message=La%20richiesta%20con%20messaggio%0D%0A%22"+
-        encodeURI(messaggio)+
-        "%22%0D%0Ae%20permalink%20"+
-        permalink.replace(/&/g, "%26").replace(/#/g, "%23")+
-        "%20è%20stata%20esaudita%2C%20"+(modificare === true ? "modificando" : "sbloccando")+
-        "%20come%20richiesto.%0D%0A%0D%0ASi%20prega%20di%20non%20rispondere%20se%20non%20strettamente%20necessario.%0D%0A%0D%0ABuon%20lavoro!%0D%0A&icon=8";
+            username+
+            "&subject=Richiesta%20esaudita&message=La%20richiesta%20con%20messaggio%0D%0A%22"+
+            encodeURI(messaggio)+
+            "%22%0D%0Ae%20permalink%20"+
+            permalink.replace(/&/g, "%26").replace(/#/g, "%23")+
+            "%20è%20stata%20esaudita%2C%20"+(modificare === true ? "modificando" : "sbloccando")+
+            "%20come%20richiesto.%0D%0A%0D%0ASi%20prega%20di%20non%20rispondere%20se%20non%20strettamente%20necessario.%0D%0A%0D%0ABuon%20lavoro!%0D%0A&icon=8";
     }
 
     function generateInfoPMURL(username, permalink, messaggio)
     {
         return "http://www.waze.com/forum/ucp.php?i=pm&mode=compose&username="+
-        username+
-        "&subject=Ulteriori%20informazioni%20necessarie&message=Circa%20la%20richiesta%20con%20messaggio%0D%0A%22"+
-        encodeURI(messaggio)+
-        "%22%0D%0Ae%20permalink%20"+
-        permalink.replace(/&/g, "%26").replace(/#/g, "%23")+
-        "%0D%0Aabbiamo%20bisogno%20di%20ulteriori%20informazioni%20da%20parte%20tua."+
-        "%0D%0A%0D%0A%0D%0AGrazie.&icon=9";
+            username+
+            "&subject=Ulteriori%20informazioni%20necessarie&message=Circa%20la%20richiesta%20con%20messaggio%0D%0A%22"+
+            encodeURI(messaggio)+
+            "%22%0D%0Ae%20permalink%20"+
+            permalink.replace(/&/g, "%26").replace(/#/g, "%23")+
+            "%0D%0Aabbiamo%20bisogno%20di%20ulteriori%20informazioni%20da%20parte%20tua."+
+            "%0D%0A%0D%0A%0D%0AGrazie.&icon=9";
     }
 
     function generateUNSuccessfulPMURl(username, permalink, messaggio)
     {
         return "http://www.waze.com/forum/ucp.php?i=pm&mode=compose&username="+
-        username+
-        "&subject=Richiesta%20NON%20esaudita&message=La%20richiesta%20con%20messaggio%0D%0A%22"+
-        encodeURI(messaggio)+
-        "%22%0D%0Ae%20permalink%20"+
-        permalink.replace(/&/g, "%26").replace(/#/g, "%23")+
-        "%20non%20è%20stata%20esaudita."+
-        "%0D%0AMotivazione:%0D%0A%0D%0A&icon=10";
+            username+
+            "&subject=Richiesta%20NON%20esaudita&message=La%20richiesta%20con%20messaggio%0D%0A%22"+
+            encodeURI(messaggio)+
+            "%22%0D%0Ae%20permalink%20"+
+            permalink.replace(/&/g, "%26").replace(/#/g, "%23")+
+            "%20non%20è%20stata%20esaudita."+
+            "%0D%0AMotivazione:%0D%0A%0D%0A&icon=10";
+    }
+
+    function showUpdateWindow(trials = 0){
+        if(WazeWrap && WazeWrap.Ready){
+            WazeWrap.Interface.ShowScriptUpdate(
+                'WME Unlocker',
+                ITUnlockerVersion,
+                `<b>Novità</b>
+                <br>- 1.5.0 Quando il PM non è richiesto, il messaggio lo dice ora esplicitamente.`,
+                '',
+                GM_info.script.supportURL
+            );
+        }else if(trials < 10){
+            setTimeout((trials)=>{showUpdateWindow(trials++);}, 1000);
+        }
     }
 
     function coolscript_init() {
         console.debug(vars);
+        showUpdateWindow();
         if (vars.R == undefined)
         {
             consoleLog('No username, initialization aborted (WAD)');
@@ -364,4 +381,4 @@
         ITUnlockerscript_bootstrap();
     };
 
-    })();
+})();
